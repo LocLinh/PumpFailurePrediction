@@ -55,27 +55,25 @@ def tune_model(x__train,
 
 
 def load_data():
-    with open(constants.DAILY_TRAIN_PATH, 'rb') as t_train_file:
-        daily_train = pickle.load(t_train_file)
-    with open(constants.DAILY_TEST_PATH, 'rb') as t_test_file:
-        daily_test = pickle.load(t_test_file)
-    with open(constants.DATA_PATH, 'rb') as t_data_file:
+    with open(constants.FN_RAW_DATA_PATH, 'rb') as t_train_file:
+        raw = pickle.load(t_train_file)
+    with open(constants.FN_DATA_PATH, 'rb') as t_data_file:
         data = pickle.load(t_data_file)
 
-    return daily_train, daily_test, data
+    return raw, data
 
 
 def get_class_weights(data:DataFrame):
     weights = class_weight.compute_class_weight(class_weight='balanced',
-                                                 classes=data['FAILURE'].unique(), 
-                                                 y=data['FAILURE'].values)
-    class_weights = dict(zip(data['FAILURE'].unique(), weights)) 
+                                                 classes=data['WellFailure'].unique(), 
+                                                 y=data['WellFailure'].values)
+    class_weights = dict(zip(data['WellFailure'].unique(), weights)) 
     return class_weights
 
 
 def split_data(data:DataFrame, features:list, test_size:float, shuffle:bool=None, random_state:int=None):
     x_train, x_test, y_train, y_test = train_test_split(data[features], 
-                                                        data[['DATE','FAILURE']], 
+                                                        data[['DATE','WellFailure']], 
                                                         test_size=test_size, 
                                                         shuffle=shuffle, 
                                                         random_state=random_state)
@@ -86,12 +84,15 @@ def normalize_data(data:DataFrame, scaler:MinMaxScaler):
     return scaler.fit_transform(data)
 
 
-def get_map_well_id_name(daily_train:DataFrame, daily_test:DataFrame):
-    temp_data = pd.concat(objs=[daily_train, daily_test], axis=0).reset_index().drop(columns='index')
-    nums = np.arange(1,len(temp_data['WELL_ID'].unique())+1)
-    data_dict = dict(zip(temp_data['WELL_ID'].unique(),nums))
+def get_map_well_id_name(daily_train:DataFrame):
+    nums = np.arange(1,len(daily_train['WELL_ID'].unique())+1)
+    data_dict = dict(zip(daily_train['WELL_ID'].unique(),nums))
+
+    # temp_data = pd.concat(objs=[daily_train, daily_test], axis=0).reset_index().drop(columns='index')
+    # nums = np.arange(1,len(temp_data['WELL_ID'].unique())+1)
+    # data_dict = dict(zip(temp_data['WELL_ID'].unique(),nums))
     well_id_map = {v: k for k, v in data_dict.items()}
-    return well_id_map
+    return well_id_map, data_dict
 
 
 def map_well_name(data:DataFrame, test_set:DataFrame, map_id_name:dict):
@@ -102,7 +103,7 @@ def map_well_name(data:DataFrame, test_set:DataFrame, map_id_name:dict):
 def make_prediction(model:Model, x:DataFrame, x_test:DataFrame, map_id_name:dict):
     pred = model.predict(x)
     pred = np.argmax(pred, axis=1)
-    pred = pd.DataFrame(pred,columns=['FAILURE'], index=x_test.index)
+    pred = pd.DataFrame(pred,columns=['WellFailure'], index=x_test.index)
     pred = map_well_name(pred, x_test, map_id_name=map_id_name)
     return pred
 
@@ -129,8 +130,8 @@ def make_evaluate(model, x, y, list_well_test, x_test, map_id_name):
 
     # filter sample with output 'yes' or 'manual off'
     list_well_pred = list(prediction[
-        ((prediction['FAILURE'] == constants.WELL_FAILURE_YES) 
-        | (prediction['FAILURE'] == constants.WELL_FAILURE_MANUAL_OFF) )]
+        ((prediction['WellFailure'] == constants.WELL_FAILURE_YES) 
+        | (prediction['WellFailure'] == constants.WELL_FAILURE_MANUAL_OFF) )]
         .groupby('WELL_ID').value_counts().keys())
     list_well_pred = [well for well, _ in list_well_pred]
 
@@ -147,8 +148,8 @@ def make_evaluate(model, x, y, list_well_test, x_test, map_id_name):
 
     print('evaluating...')
     # evaluate
-    acc_score = accuracy_score(sample_true['FAILURE'], sample_pred['FAILURE'])
-    f1__score = f1_score(sample_true['FAILURE'], sample_pred['FAILURE'])
+    acc_score = accuracy_score(sample_true['WellFailure'], sample_pred['WellFailure'])
+    f1__score = f1_score(sample_true['WellFailure'], sample_pred['WellFailure'])
     delta_time = sample_true['DATE'] - sample_pred['DATE']
 
     date_scores = []
@@ -184,19 +185,19 @@ def make_evaluate(model, x, y, list_well_test, x_test, map_id_name):
 
 def get_sample(test_set, chosen_wells):
     res = test_set[test_set['WELL_ID'].isin(chosen_wells)] \
-                .query("FAILURE > 0") \
+                .query("WellFailure > 0") \
                 .groupby('WELL_ID') \
                 .apply(lambda x:x.sample(1, random_state=constants.MY_RANDOM_STATE)) \
                 .sample(n=len(chosen_wells), random_state=constants.MY_RANDOM_STATE)
 
     try: 
-        wells = [item[0] for item in np.array(res.FAILURE.keys())]
-        time = [item[1] for item in np.array(res.FAILURE.keys())]
+        wells = [item[0] for item in np.array(res.WellFailure.keys())]
+        time = [item[1] for item in np.array(res.WellFailure.keys())]
     except:
         wells = [res.WELL_ID[i] for i in np.array(res.WELL_ID.keys())]
         time = [i for i in np.array(res.WELL_ID.keys())]
-    res = res.FAILURE.to_numpy()
-    res = pd.DataFrame(list(zip(wells, time, res)), columns =['WELL_ID', 'DATE', 'FAILURE'])
+    res = res.WellFailure.to_numpy()
+    res = pd.DataFrame(list(zip(wells, time, res)), columns =['WELL_ID', 'DATE', 'WellFailure'])
     return res
 
 

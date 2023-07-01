@@ -5,13 +5,15 @@ WELL_FAILURE_MANUAL_OFF = 2
 MY_RANDOM_STATE = 28
 
 DATA_PATH = './data/data.pkl'
+FN_RAW_DATA_PATH = './data/final_data.pkl'
+FN_DATA_PATH = './data/final_data_1.pkl'
 DAILY_TRAIN_PATH = './data/daily_train.pkl'
 DAILY_TEST_PATH = './data/daily_test.pkl'
 OUTPUT_DIR = './output'
 
 BATCH_SIZE = 32
 EPOCHS = 30
-START = 2088
+START = 0
 OUTPUT_CLASSES = 3
 
 DEFAULT_HYPER_PARAMS = {
@@ -44,3 +46,4 @@ OPTIMIZER_SET = {'adam', 'sgd'}
 LOSS_SET = {'categorical_crossentropy'}
 
 DROP_COLUMNS = ['WellFailure','PUMP','FAILURE','PIP(PSI)','AMPERAGE', 'FREC(Hz)','WHP(PSI)','MSCF','BFPD']
+FEATURE_COLUMNS = ['WELL_ID', 'DATE', 'CURRENT', 'PRESS_DESC', 'FREQUENCY', 'PRESS_INT', 'TEMP_INT', 'TEMP_MOT', 'OUT_VOLT', 'VIBRATION']

@@ -1,7 +1,0 @@
-Model parameters of key=C_1752 :
-{'layer_num': 3, 'neurons': [16, 32, 32], 'activation_func': ['tanh', 'relu', 'relu'], 'optimizer': 'sgd', 'loss': 'categorical_crossentropy'}
-0.5333333333333333
-0.5333333333333333
-0.06666666666666667
-0.44
-==============================
